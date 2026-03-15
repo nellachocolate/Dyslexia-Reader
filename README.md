@@ -1,4 +1,4 @@
-# Dyslexia Reader v1
+# Dyslexia Reader v2
 
 `Dyslexia Reader` is a Manifest V3 browser extension for Chrome and Edge that overlays accessibility tools on top of any webpage.
 
