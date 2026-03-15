@@ -6,6 +6,7 @@
     sentenceHighlighting: true,
     syllableShower: false,
     aiRewrite: true,
+    textScale: 100,
     ttsRate: 1,
     voiceName: "",
     aiModel: "gpt-5-mini",
@@ -23,6 +24,7 @@
     next.sentenceHighlighting = Boolean(next.sentenceHighlighting);
     next.syllableShower = Boolean(next.syllableShower);
     next.aiRewrite = Boolean(next.aiRewrite);
+    next.textScale = Math.round(clamp(Number(next.textScale) || DEFAULT_SETTINGS.textScale, 80, 200));
     next.ttsRate = clamp(Number(next.ttsRate) || DEFAULT_SETTINGS.ttsRate, 0.7, 1.4);
     next.voiceName = typeof next.voiceName === "string" ? next.voiceName : "";
     next.aiModel = typeof next.aiModel === "string" && next.aiModel.trim()

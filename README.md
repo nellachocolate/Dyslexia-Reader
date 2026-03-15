@@ -6,7 +6,8 @@
 
 - Hover dictionary: hover a word to see a quick definition.
 - Sentence highlighting: click a sentence to dim the rest of the page, highlight the sentence, and read it aloud.
-- Syllable shower: insert `·` separators into page text using a lightweight syllable heuristic.
+- Syllable shower: insert `·` separators using a bundled local Hyphenopoly English hyphenation source.
+- Text size slider: scale page text from `80%` to `200%`.
 - AI rewrite: select text, click `Simplify with AI`, and get a simpler rewrite in an on-page panel.
 
 ## Load the extension

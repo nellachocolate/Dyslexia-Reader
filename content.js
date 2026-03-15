@@ -4,6 +4,8 @@
   const TEXT_WORD_PATTERN = /[A-Za-z][A-Za-z'-]{2,}/g;
   const SYLLABLE_SEPARATOR = "\u00b7";
   const UI_ROOT_ID = "dr-reader-root";
+  const HYPHENOPOLY_BRIDGE_ID = "dr-hyphenopoly-bridge";
+  const HYPHENOPOLY_REFRESH_EVENT = "dr:hyphenopoly-refresh";
   const BLOCK_TAGS = new Set([
     "ARTICLE",
     "ASIDE",
@@ -27,11 +29,6 @@
     "SECTION",
     "TD",
     "TH"
-  ]);
-  const BLENDS = new Set([
-    "bl", "br", "ch", "cl", "cr", "dr", "fl", "fr", "gl", "gr", "ph",
-    "pl", "pr", "sc", "sh", "sk", "sl", "sm", "sn", "sp", "st", "sw",
-    "th", "tr", "tw", "wh", "wr", "qu"
   ]);
   const SKIP_SELECTOR = [
     "#" + UI_ROOT_ID,
@@ -62,7 +59,11 @@
     rewriteBusy: false,
     syllableReplacements: [],
     syllableObserver: null,
-    performingSyllableMutation: false
+    performingSyllableMutation: false,
+    hyphenopolyBridgePromise: null,
+    hyphenopolyRefreshFrame: 0,
+    textScaleObserver: null,
+    appliedTextScale: 100
   };
 
   let uiRoot;
@@ -139,6 +140,7 @@
 
   function applySettings(nextSettings) {
     state.settings = nextSettings;
+    applyTextScale(state.settings.textScale);
 
     if (state.settings.syllableShower) {
       enableSyllableMode();
@@ -489,53 +491,35 @@
   function getWordAtPoint(clientX, clientY) {
     const caret = getCaretPositionFromPoint(clientX, clientY);
 
-    if (!caret || caret.node.nodeType !== Node.TEXT_NODE || !caret.node.nodeValue) {
-      return null;
+    return getWordDetailsFromCaret(caret, clientX, clientY);
+  }
+
+  function isPointInsideRange(clientX, clientY, range) {
+    const rects = Array.from(range.getClientRects())
+      .filter((rect) => rect.width > 0 && rect.height > 0);
+
+    if (!rects.length) {
+      return false;
     }
 
-    const text = caret.node.nodeValue;
-    let index = Math.min(caret.offset, text.length - 1);
-
-    if (index < 0) {
-      return null;
-    }
-
-    if (!LETTER_PATTERN.test(text[index] || "")) {
-      index -= 1;
-    }
-
-    if (index < 0 || !LETTER_PATTERN.test(text[index] || "")) {
-      return null;
-    }
-
-    let start = index;
-    let end = index + 1;
-
-    while (start > 0 && LETTER_PATTERN.test(text[start - 1])) {
-      start -= 1;
-    }
-
-    while (end < text.length && LETTER_PATTERN.test(text[end])) {
-      end += 1;
-    }
-
-    const word = text
-      .slice(start, end)
-      .split(SYLLABLE_SEPARATOR)
-      .join("")
-      .replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "");
-
-    if (word.length < 2) {
-      return null;
-    }
-
-    return { word };
+    return rects.some((rect) => {
+      return clientX >= rect.left - 1
+        && clientX <= rect.right + 1
+        && clientY >= rect.top - 1
+        && clientY <= rect.bottom + 1;
+    });
   }
 
   function getSentenceRangeFromPoint(clientX, clientY) {
     const caret = getCaretPositionFromPoint(clientX, clientY);
 
     if (!caret || caret.node.nodeType !== Node.TEXT_NODE || !caret.node.parentElement) {
+      return null;
+    }
+
+    const wordDetails = getWordDetailsFromCaret(caret, clientX, clientY);
+
+    if (!wordDetails) {
       return null;
     }
 
@@ -579,6 +563,63 @@
     }
 
     return { range, text: sentenceText };
+  }
+
+  function getWordDetailsFromCaret(caret, clientX, clientY) {
+    if (!caret || caret.node.nodeType !== Node.TEXT_NODE || !caret.node.nodeValue) {
+      return null;
+    }
+
+    const text = caret.node.nodeValue;
+    let index = Math.min(caret.offset, text.length - 1);
+
+    if (index < 0) {
+      return null;
+    }
+
+    if (!LETTER_PATTERN.test(text[index] || "")) {
+      index -= 1;
+    }
+
+    if (index < 0 || !LETTER_PATTERN.test(text[index] || "")) {
+      return null;
+    }
+
+    let start = index;
+    let end = index + 1;
+
+    while (start > 0 && LETTER_PATTERN.test(text[start - 1])) {
+      start -= 1;
+    }
+
+    while (end < text.length && LETTER_PATTERN.test(text[end])) {
+      end += 1;
+    }
+
+    const word = text
+      .slice(start, end)
+      .split(SYLLABLE_SEPARATOR)
+      .join("")
+      .replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "");
+
+    if (word.length < 2) {
+      return null;
+    }
+
+    const wordRange = document.createRange();
+    wordRange.setStart(caret.node, start);
+    wordRange.setEnd(caret.node, end);
+
+    if (!isPointInsideRange(clientX, clientY, wordRange)) {
+      return null;
+    }
+
+    return {
+      word,
+      range: wordRange,
+      start,
+      end
+    };
   }
 
   function getSentenceContainer(startElement) {
@@ -763,9 +804,11 @@
     }
 
     clearSentenceFocus(true);
+    ensureHyphenopolyBridge();
     state.performingSyllableMutation = true;
     transformNodeTree(document.body);
     state.performingSyllableMutation = false;
+    scheduleHyphenopolyRefresh();
 
     state.syllableObserver = new MutationObserver((mutations) => {
       if (state.performingSyllableMutation) {
@@ -773,11 +816,12 @@
       }
 
       state.performingSyllableMutation = true;
+      let createdWrapper = false;
 
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.TEXT_NODE) {
-            replaceTextNodeWithSyllables(node);
+            createdWrapper = replaceTextNodeWithSyllables(node) || createdWrapper;
             return;
           }
 
@@ -786,12 +830,16 @@
             if (element.matches(".dr-syllable-node") || element.closest("#" + UI_ROOT_ID)) {
               return;
             }
-            transformNodeTree(element);
+            createdWrapper = transformNodeTree(element) || createdWrapper;
           }
         });
       });
 
       state.performingSyllableMutation = false;
+
+      if (createdWrapper) {
+        scheduleHyphenopolyRefresh();
+      }
     });
 
     state.syllableObserver.observe(document.body, {
@@ -806,6 +854,11 @@
       state.syllableObserver = null;
     }
 
+    if (state.hyphenopolyRefreshFrame) {
+      window.cancelAnimationFrame(state.hyphenopolyRefreshFrame);
+      state.hyphenopolyRefreshFrame = 0;
+    }
+
     for (let i = state.syllableReplacements.length - 1; i >= 0; i -= 1) {
       const replacement = state.syllableReplacements[i];
       if (replacement.wrapper.isConnected) {
@@ -817,6 +870,7 @@
   }
 
   function transformNodeTree(root) {
+    let changed = false;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (shouldSkipTextNode(node)) {
@@ -833,29 +887,34 @@
       nodes.push(node);
     }
 
-    nodes.forEach(replaceTextNodeWithSyllables);
+    nodes.forEach((textNode) => {
+      changed = replaceTextNodeWithSyllables(textNode) || changed;
+    });
+
+    return changed;
   }
 
   function replaceTextNodeWithSyllables(node) {
     if (shouldSkipTextNode(node)) {
-      return;
+      return false;
     }
 
-    const transformedText = syllabifyText(node.nodeValue || "");
-
-    if (!transformedText || transformedText === node.nodeValue) {
-      return;
+    const sourceText = node.nodeValue || "";
+    if (!sourceText.trim()) {
+      return false;
     }
 
     const wrapper = document.createElement("span");
     wrapper.className = "dr-syllable-node";
-    wrapper.textContent = transformedText;
+    wrapper.textContent = sourceText;
 
     node.parentNode.replaceChild(wrapper, node);
     state.syllableReplacements.push({
       wrapper,
       original: node
     });
+
+    return true;
   }
 
   function shouldSkipTextNode(node) {
@@ -880,57 +939,195 @@
     return styles.display === "none" || styles.visibility === "hidden";
   }
 
-  function syllabifyText(text) {
-    return text.replace(/[A-Za-z][A-Za-z'-]{2,}/g, (word) => syllabifyWord(word));
-  }
-
-  function syllabifyWord(word) {
-    const clean = word.toLowerCase().replace(/[^a-z]/g, "");
-
-    if (clean.length < 5) {
-      return word;
-    }
-
-    const vowels = "aeiouy";
-    const parts = [];
-    let start = 0;
-
-    for (let i = 1; i < clean.length - 1; i += 1) {
-      const current = clean[i];
-      const previous = clean[i - 1];
-      const next = clean[i + 1];
-
-      if (!vowels.includes(current)) {
-        continue;
-      }
-
-      if (vowels.includes(previous) || vowels.includes(next)) {
-        continue;
-      }
-
-      let splitIndex = i + 1;
-
-      if (i + 2 < clean.length && !vowels.includes(clean[i + 1]) && vowels.includes(clean[i + 2])) {
-        const pair = clean.slice(i + 1, i + 3);
-        if (!BLENDS.has(pair)) {
-          splitIndex = i + 2;
-        }
-      }
-
-      if (splitIndex > start + 1 && clean.length - splitIndex > 1) {
-        parts.push(word.slice(start, splitIndex));
-        start = splitIndex;
-      }
-    }
-
-    parts.push(word.slice(start));
-
-    const joined = parts.filter(Boolean).join(SYLLABLE_SEPARATOR);
-    return joined.includes(SYLLABLE_SEPARATOR) ? joined : word;
-  }
-
   function shouldSkipElement(element) {
     return Boolean(element && element.closest(SKIP_SELECTOR));
+  }
+
+  function ensureHyphenopolyBridge() {
+    if (state.hyphenopolyBridgePromise) {
+      return state.hyphenopolyBridgePromise;
+    }
+
+    state.hyphenopolyBridgePromise = new Promise((resolve, reject) => {
+      const existing = document.getElementById(HYPHENOPOLY_BRIDGE_ID);
+      if (existing) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = HYPHENOPOLY_BRIDGE_ID;
+      script.src = chrome.runtime.getURL("hyphenopoly-bridge.js");
+      script.async = false;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load Hyphenopoly bridge."));
+
+      (document.head || document.documentElement).appendChild(script);
+    });
+
+    return state.hyphenopolyBridgePromise;
+  }
+
+  function scheduleHyphenopolyRefresh() {
+    if (!state.settings.syllableShower) {
+      return;
+    }
+
+    if (state.hyphenopolyRefreshFrame) {
+      return;
+    }
+
+    state.hyphenopolyRefreshFrame = window.requestAnimationFrame(() => {
+      state.hyphenopolyRefreshFrame = 0;
+      ensureHyphenopolyBridge()
+        .then(() => {
+          window.dispatchEvent(new CustomEvent(HYPHENOPOLY_REFRESH_EVENT));
+        })
+        .catch(() => {});
+    });
+  }
+
+  function applyTextScale(scalePercent) {
+    ensureTextScaleObserver();
+    scaleExistingPageElements(scalePercent);
+    state.appliedTextScale = scalePercent;
+  }
+
+  function ensureTextScaleObserver() {
+    if (state.textScaleObserver || !document.body) {
+      return;
+    }
+
+    state.textScaleObserver = new MutationObserver((mutations) => {
+      if (state.appliedTextScale === 100) {
+        return;
+      }
+
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          scaleNodeTree(node, state.appliedTextScale);
+        });
+      });
+    });
+
+    state.textScaleObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function scaleExistingPageElements(scalePercent) {
+    if (!document.body) {
+      return;
+    }
+
+    scaleNodeTree(document.body, scalePercent);
+  }
+
+  function scaleNodeTree(rootNode, scalePercent) {
+    if (!(rootNode instanceof Element)) {
+      return;
+    }
+
+    const elements = [];
+
+    if (!shouldSkipScaledElement(rootNode)) {
+      elements.push(rootNode);
+    }
+
+    const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_ELEMENT, {
+      acceptNode(node) {
+        return shouldSkipScaledElement(node)
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    let current;
+    while ((current = walker.nextNode())) {
+      elements.push(current);
+    }
+
+    elements.forEach((element) => {
+      applyTextScaleToElement(element, scalePercent);
+    });
+  }
+
+  function applyTextScaleToElement(element, scalePercent) {
+    if (scalePercent === 100) {
+      restoreScaledElement(element);
+      return;
+    }
+
+    const baseline = getElementBaselineFontSize(element);
+
+    if (!baseline) {
+      return;
+    }
+
+    element.style.setProperty("font-size", (baseline * scalePercent / 100).toFixed(2) + "px", "important");
+  }
+
+  function getElementBaselineFontSize(element) {
+    const stored = Number(element.dataset.drOriginalFontSize || "");
+
+    if (stored > 0) {
+      return stored;
+    }
+
+    const computedFontSize = Number.parseFloat(window.getComputedStyle(element).fontSize);
+
+    if (!Number.isFinite(computedFontSize) || computedFontSize <= 0) {
+      return null;
+    }
+
+    const scaleFactor = state.appliedTextScale / 100;
+    const baseline = state.appliedTextScale === 100
+      ? computedFontSize
+      : computedFontSize / scaleFactor;
+
+    if (!Number.isFinite(baseline) || baseline <= 0) {
+      return null;
+    }
+
+    element.dataset.drFontManaged = "true";
+    element.dataset.drOriginalFontSize = baseline.toFixed(4);
+    element.dataset.drOriginalInlineFontSize = element.style.getPropertyValue("font-size");
+    element.dataset.drOriginalInlinePriority = element.style.getPropertyPriority("font-size");
+
+    return baseline;
+  }
+
+  function restoreScaledElement(element) {
+    if (element.dataset.drFontManaged !== "true") {
+      return;
+    }
+
+    const originalFontSize = element.dataset.drOriginalInlineFontSize || "";
+    const originalPriority = element.dataset.drOriginalInlinePriority || "";
+
+    if (originalFontSize) {
+      element.style.setProperty("font-size", originalFontSize, originalPriority);
+    } else {
+      element.style.removeProperty("font-size");
+    }
+
+    delete element.dataset.drFontManaged;
+    delete element.dataset.drOriginalFontSize;
+    delete element.dataset.drOriginalInlineFontSize;
+    delete element.dataset.drOriginalInlinePriority;
+  }
+
+  function shouldSkipScaledElement(element) {
+    if (!(element instanceof Element)) {
+      return true;
+    }
+
+    if (element.closest("#" + UI_ROOT_ID)) {
+      return true;
+    }
+
+    return /^(HEAD|LINK|META|NOSCRIPT|SCRIPT|STYLE|SVG|MATH)$/.test(element.tagName);
   }
 
   function shouldSkipReadableTextNode(node) {

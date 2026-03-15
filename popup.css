@@ -36,6 +36,43 @@ body {
   font-size: 13px;
 }
 
+.slider-card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(86, 97, 114, 0.12);
+}
+
+.slider-copy strong,
+.slider-copy small {
+  display: block;
+}
+
+.slider-copy small {
+  margin-top: 2px;
+  color: #5e6c75;
+  font-size: 12px;
+}
+
+.slider-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.slider-control input {
+  flex: 1;
+}
+
+.slider-control span {
+  min-width: 42px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .toggle-list {
   display: grid;
   gap: 10px;
