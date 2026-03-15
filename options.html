@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dyslexia Reader Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="settings-shell">
+      <section class="settings-card">
+        <p class="eyebrow">Extension settings</p>
+        <h1>Dyslexia Reader</h1>
+        <p class="intro">
+          Use these defaults across Chrome and Edge. The AI rewrite feature uses the OpenAI Responses API and the default model is set to <code>gpt-5-mini</code>.
+        </p>
+
+        <form id="settingsForm" class="settings-form">
+          <label>
+            <span>OpenAI API key</span>
+            <input id="openAiApiKey" type="password" placeholder="sk-...">
+          </label>
+
+          <label>
+            <span>AI model</span>
+            <input id="aiModel" type="text" placeholder="gpt-5-mini">
+          </label>
+
+          <label>
+            <span>Speech rate</span>
+            <input id="ttsRate" type="range" min="0.7" max="1.4" step="0.1">
+            <small id="ttsRateValue"></small>
+          </label>
+
+          <label>
+            <span>Voice</span>
+            <select id="voiceName">
+              <option value="">Default English voice</option>
+            </select>
+          </label>
+
+          <button type="submit">Save settings</button>
+        </form>
+
+        <p id="saveStatus" class="save-status"></p>
+      </section>
+    </main>
+
+    <script src="shared.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

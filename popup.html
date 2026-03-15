@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dyslexia Reader</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="popup-shell">
+      <header class="popup-header">
+        <p class="eyebrow">Dyslexia Reader</p>
+        <h1>Reading tools</h1>
+        <p class="subtle">Turn features on only when they help.</p>
+      </header>
+
+      <section class="toggle-list">
+        <label class="toggle-row">
+          <span>
+            <strong>Hover dictionary</strong>
+            <small>Hover a word to see its definition.</small>
+          </span>
+          <input id="hoverDictionary" type="checkbox">
+        </label>
+
+        <label class="toggle-row">
+          <span>
+            <strong>Sentence highlighting</strong>
+            <small>Click a sentence to focus and read it aloud.</small>
+          </span>
+          <input id="sentenceHighlighting" type="checkbox">
+        </label>
+
+        <label class="toggle-row">
+          <span>
+            <strong>Syllable shower</strong>
+            <small>Insert dots between syllable groups.</small>
+          </span>
+          <input id="syllableShower" type="checkbox">
+        </label>
+
+        <label class="toggle-row">
+          <span>
+            <strong>AI rewrite</strong>
+            <small>Simplify selected text with an OpenAI model.</small>
+          </span>
+          <input id="aiRewrite" type="checkbox">
+        </label>
+      </section>
+
+      <p id="status" class="status"></p>
+
+      <div class="footer-actions">
+        <button id="openOptions" type="button">Open settings</button>
+      </div>
+    </main>
+
+    <script src="shared.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

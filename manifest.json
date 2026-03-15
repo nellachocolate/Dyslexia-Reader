@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Dyslexia Reader",
+  "version": "1.0.0",
+  "description": "An accessibility reading overlay for Chrome and Edge with focus, dictionary, syllables, and AI simplification tools.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.dictionaryapi.dev/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Dyslexia Reader",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "shared.js",
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
