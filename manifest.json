@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "An accessibility reading overlay for Chrome and Edge with focus, dictionary, syllables, and AI simplification tools.",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://api.dictionaryapi.dev/*",
@@ -18,25 +19,16 @@
     "default_popup": "popup.html"
   },
   "options_page": "options.html",
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "hyphenopoly-bridge.js",
-        "vendor/hyphenopoly/Hyphenopoly_Loader.js",
-        "vendor/hyphenopoly/Hyphenopoly.js",
-        "vendor/hyphenopoly/patterns/en-us.wasm"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ],
   "content_scripts": [
     {
       "matches": [
         "<all_urls>"
       ],
       "js": [
+        "vendor/hyphen/hyphen.min.js",
+        "vendor/hyphen/pattern-shim.js",
+        "vendor/hyphen/en-us.min.js",
+        "vendor/hyphen/pattern-export.js",
         "shared.js",
         "content.js"
       ],

@@ -36,12 +36,20 @@ body {
   font-size: 13px;
 }
 
+.master-card {
+  margin-bottom: 12px;
+}
+
 .slider-card {
   margin-bottom: 12px;
   padding: 14px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.74);
   border: 1px solid rgba(86, 97, 114, 0.12);
+}
+
+.toggle-row-emphasis {
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.14), rgba(29, 78, 216, 0.1));
 }
 
 .slider-copy strong,

@@ -54,6 +54,8 @@
 .dr-focus-layer {
   position: fixed;
   inset: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
 }
 
 .dr-focus-mask {
@@ -62,10 +64,14 @@
   background: rgba(33, 48, 58, 0.22);
 }
 
+.dr-focus-layer.dr-visible {
+  opacity: 1;
+}
+
 .dr-focus-box {
   position: fixed;
   border-radius: 12px;
-  background: rgba(255, 245, 179, 0.88);
+  background: rgba(255, 248, 196, 0.52);
   outline: 3px solid rgba(255, 196, 61, 0.7);
   box-shadow: 0 10px 22px rgba(75, 62, 23, 0.12);
 }
@@ -162,5 +168,5 @@
 }
 
 .dr-syllable-node {
-  white-space: pre-wrap;
+  white-space: inherit;
 }

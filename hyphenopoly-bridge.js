@@ -3,6 +3,8 @@
   const READY_SELECTOR = ".dr-syllable-node";
   const PROCESSED_ATTR = "data-dr-hyphenated";
   const REFRESH_EVENT = "dr:hyphenopoly-refresh";
+  const SOFT_HYPHEN = "\u00ad";
+  const MIDDLE_DOT = "\u00b7";
 
   if (window[BRIDGE_FLAG]) {
     return;
@@ -92,17 +94,56 @@
       return;
     }
 
-    window.Hyphenopoly.hyphenators["en-us"].then((hyphenate) => {
-      document.querySelectorAll(READY_SELECTOR + `:not([${PROCESSED_ATTR}="true"])`).forEach((element) => {
-        const originalText = element.textContent;
-        const hyphenatedText = hyphenate(originalText, READY_SELECTOR);
+    const pendingElements = Array.from(
+      document.querySelectorAll(READY_SELECTOR + `:not([${PROCESSED_ATTR}="true"])`)
+    );
 
-        if (typeof hyphenatedText === "string" && hyphenatedText) {
-          element.textContent = hyphenatedText;
-        }
+    if (!pendingElements.length) {
+      return;
+    }
 
+    const htmlHyphenator = window.Hyphenopoly.hyphenators.HTML;
+
+    if (!htmlHyphenator) {
+      return;
+    }
+
+    htmlHyphenator.then((hyphenateHtml) => {
+      const probeHost = createProbeHost();
+      pendingElements.forEach((element) => {
+        const probe = document.createElement("span");
+        probe.className = READY_SELECTOR.slice(1);
+        probe.lang = "en-us";
+        probe.textContent = element.textContent;
+        probeHost.appendChild(probe);
+
+        hyphenateHtml(probe, READY_SELECTOR);
+        element.textContent = normalizeHyphenatedText(probe.textContent);
         element.setAttribute(PROCESSED_ATTR, "true");
+        probe.remove();
       });
+      probeHost.remove();
     }).catch(() => {});
+  }
+
+  function normalizeHyphenatedText(text) {
+    if (typeof text !== "string") {
+      return text;
+    }
+
+    return text.replaceAll(SOFT_HYPHEN, MIDDLE_DOT);
+  }
+
+  function createProbeHost() {
+    const host = document.createElement("div");
+    host.setAttribute("aria-hidden", "true");
+    host.style.position = "fixed";
+    host.style.left = "-99999px";
+    host.style.top = "0";
+    host.style.visibility = "hidden";
+    host.style.pointerEvents = "none";
+    host.style.whiteSpace = "normal";
+    document.body.appendChild(host);
+    return host;
   }
 }());

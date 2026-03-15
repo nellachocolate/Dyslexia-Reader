@@ -6,7 +6,7 @@
 
 - Hover dictionary: hover a word to see a quick definition.
 - Sentence highlighting: click a sentence to dim the rest of the page, highlight the sentence, and read it aloud.
-- Syllable shower: insert `·` separators using a bundled local Hyphenopoly English hyphenation source.
+- Show syllables: insert `·` separators using a bundled local English hyphenation source.
 - Text size slider: scale page text from `80%` to `200%`.
 - AI rewrite: select text, click `Simplify with AI`, and get a simpler rewrite in an on-page panel.
 
@@ -28,4 +28,4 @@
 
 - The AI rewrite feature uses the OpenAI Responses API with the default model set to `gpt-5-mini`.
 - Sentence focus uses the browser's built-in Web Speech API for text-to-speech.
-- Syllable splitting is heuristic in this v1, so some words will be split approximately rather than perfectly.
+- Show syllables uses a bundled local hyphenation source, so splits are approximate reading breaks rather than perfect spoken syllables.

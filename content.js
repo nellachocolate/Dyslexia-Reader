@@ -4,8 +4,6 @@
   const TEXT_WORD_PATTERN = /[A-Za-z][A-Za-z'-]{2,}/g;
   const SYLLABLE_SEPARATOR = "\u00b7";
   const UI_ROOT_ID = "dr-reader-root";
-  const HYPHENOPOLY_BRIDGE_ID = "dr-hyphenopoly-bridge";
-  const HYPHENOPOLY_REFRESH_EVENT = "dr:hyphenopoly-refresh";
   const BLOCK_TAGS = new Set([
     "ARTICLE",
     "ASIDE",
@@ -50,6 +48,7 @@
 
   const state = {
     settings: shared.DEFAULT_SETTINGS,
+    pageEnabled: false,
     currentSentence: null,
     focusUpdateFrame: 0,
     hoverLookupToken: 0,
@@ -60,8 +59,10 @@
     syllableReplacements: [],
     syllableObserver: null,
     performingSyllableMutation: false,
-    hyphenopolyBridgePromise: null,
-    hyphenopolyRefreshFrame: 0,
+    sentenceFocusClearTimer: 0,
+    sentenceFocusFadeTimer: 0,
+    speechRequestId: 0,
+    syllableHyphenator: null,
     textScaleObserver: null,
     appliedTextScale: 100
   };
@@ -70,15 +71,19 @@
   let tooltipEl;
   let focusLayerEl;
   let focusBoxesEl;
+  let focusCaptionEl;
   let rewriteButtonEl;
   let rewritePanelEl;
 
-  setup().catch(() => {});
+  setup().catch((error) => {
+    console.error("Dyslexia Reader failed to start.", error);
+  });
 
   async function setup() {
+    await waitForDocumentRoots();
     buildUi();
     state.settings = await shared.getStoredSettings();
-    applySettings(state.settings);
+    applyFeatureState();
     bindEvents();
   }
 
@@ -96,9 +101,9 @@
     focusMaskEl.className = "dr-focus-mask";
     focusBoxesEl = document.createElement("div");
 
-    const focusCaptionEl = document.createElement("div");
+    focusCaptionEl = document.createElement("div");
     focusCaptionEl.className = "dr-focus-caption";
-    focusCaptionEl.textContent = "Sentence focus is active";
+    focusCaptionEl.textContent = "Click the sentence again to stop";
 
     focusLayerEl.appendChild(focusMaskEl);
     focusLayerEl.appendChild(focusBoxesEl);
@@ -128,6 +133,7 @@
     window.addEventListener("scroll", scheduleFocusUpdate, true);
     window.addEventListener("resize", scheduleFocusUpdate, true);
     chrome.storage.onChanged.addListener(onStorageChanged);
+    chrome.runtime.onMessage.addListener(onRuntimeMessage);
   }
 
   function onStorageChanged(changes, areaName) {
@@ -135,34 +141,44 @@
       return;
     }
 
-    applySettings(shared.normalizeSettings(changes[shared.SETTINGS_KEY].newValue));
+    state.settings = shared.normalizeSettings(changes[shared.SETTINGS_KEY].newValue);
+    applyFeatureState();
   }
 
-  function applySettings(nextSettings) {
-    state.settings = nextSettings;
-    applyTextScale(state.settings.textScale);
+  function applyFeatureState() {
+    const effectiveSettings = state.pageEnabled
+      ? state.settings
+      : Object.assign({}, state.settings, {
+        hoverDictionary: false,
+        sentenceHighlighting: false,
+        syllableShower: false,
+        aiRewrite: false,
+        textScale: 100
+      });
 
-    if (state.settings.syllableShower) {
+    applyTextScale(effectiveSettings.textScale);
+
+    if (effectiveSettings.syllableShower) {
       enableSyllableMode();
     } else {
       disableSyllableMode();
     }
 
-    if (!state.settings.hoverDictionary) {
+    if (!effectiveSettings.hoverDictionary) {
       hideTooltip();
     }
 
-    if (!state.settings.sentenceHighlighting) {
+    if (!effectiveSettings.sentenceHighlighting) {
       clearSentenceFocus(true);
     }
 
-    if (!state.settings.aiRewrite) {
+    if (!effectiveSettings.aiRewrite) {
       hideRewriteUi();
     }
   }
 
   function onDocumentMouseMove(event) {
-    if (!state.settings.hoverDictionary || isUiTarget(event.target)) {
+    if (!state.pageEnabled || !state.settings.hoverDictionary || isUiTarget(event.target)) {
       hideTooltip();
       return;
     }
@@ -206,7 +222,7 @@
       return;
     }
 
-    if (state.settings.sentenceHighlighting && event.button === 0 && !hasActiveSelection()) {
+    if (state.pageEnabled && state.settings.sentenceHighlighting && event.button === 0 && !hasActiveSelection()) {
       const sentenceDetails = getSentenceRangeFromPoint(event.clientX, event.clientY);
 
       if (sentenceDetails) {
@@ -216,6 +232,12 @@
 
         event.preventDefault();
         event.stopPropagation();
+
+        if (state.currentSentence && isSameSentenceRange(state.currentSentence.range, sentenceDetails.range)) {
+          clearSentenceFocus(true);
+          return;
+        }
+
         activateSentenceFocus(sentenceDetails);
         return;
       }
@@ -227,7 +249,7 @@
   }
 
   function onSelectionChange() {
-    if (!state.settings.aiRewrite) {
+    if (!state.pageEnabled || !state.settings.aiRewrite) {
       hideRewriteUi();
       return;
     }
@@ -265,6 +287,32 @@
       hideRewriteUi();
       clearSentenceFocus(true);
     }
+  }
+
+  function onRuntimeMessage(message, sender, sendResponse) {
+    if (!message || typeof message.type !== "string") {
+      return false;
+    }
+
+    if (message.type === "get-page-state") {
+      sendResponse({
+        ok: true,
+        pageEnabled: state.pageEnabled
+      });
+      return false;
+    }
+
+    if (message.type === "set-page-enabled") {
+      state.pageEnabled = Boolean(message.enabled);
+      applyFeatureState();
+      sendResponse({
+        ok: true,
+        pageEnabled: state.pageEnabled
+      });
+      return false;
+    }
+
+    return false;
   }
 
   async function onRewriteButtonClick() {
@@ -308,16 +356,38 @@
     clearSentenceFocus(false);
     state.currentSentence = sentenceDetails;
     focusLayerEl.classList.remove("dr-hidden");
+    if (state.sentenceFocusFadeTimer) {
+      window.clearTimeout(state.sentenceFocusFadeTimer);
+      state.sentenceFocusFadeTimer = 0;
+    }
+    window.requestAnimationFrame(() => {
+      focusLayerEl.classList.add("dr-visible");
+    });
     updateFocusOverlay();
     speakSentence(sentenceDetails.text);
   }
 
   function clearSentenceFocus(cancelSpeech) {
+    if (state.sentenceFocusClearTimer) {
+      window.clearTimeout(state.sentenceFocusClearTimer);
+      state.sentenceFocusClearTimer = 0;
+    }
+
+    if (state.sentenceFocusFadeTimer) {
+      window.clearTimeout(state.sentenceFocusFadeTimer);
+      state.sentenceFocusFadeTimer = 0;
+    }
+
     state.currentSentence = null;
-    focusLayerEl.classList.add("dr-hidden");
-    focusBoxesEl.innerHTML = "";
+    focusLayerEl.classList.remove("dr-visible");
+    state.sentenceFocusFadeTimer = window.setTimeout(() => {
+      focusLayerEl.classList.add("dr-hidden");
+      focusBoxesEl.innerHTML = "";
+      state.sentenceFocusFadeTimer = 0;
+    }, 220);
 
     if (cancelSpeech && "speechSynthesis" in window) {
+      state.speechRequestId += 1;
       window.speechSynthesis.cancel();
     }
   }
@@ -335,7 +405,6 @@
 
   function updateFocusOverlay() {
     if (!state.currentSentence) {
-      focusLayerEl.classList.add("dr-hidden");
       return;
     }
 
@@ -769,6 +838,12 @@
       return;
     }
 
+    if (state.sentenceFocusClearTimer) {
+      window.clearTimeout(state.sentenceFocusClearTimer);
+      state.sentenceFocusClearTimer = 0;
+    }
+
+    const requestId = ++state.speechRequestId;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = state.settings.ttsRate;
 
@@ -777,8 +852,43 @@
       utterance.voice = voice;
     }
 
+    utterance.addEventListener("end", () => {
+      if (requestId !== state.speechRequestId || !state.currentSentence) {
+        return;
+      }
+
+      state.sentenceFocusClearTimer = window.setTimeout(() => {
+        if (requestId === state.speechRequestId) {
+          clearSentenceFocus(false);
+        }
+      }, 1000);
+    });
+
+    utterance.addEventListener("error", () => {
+      if (requestId !== state.speechRequestId || !state.currentSentence) {
+        return;
+      }
+
+      state.sentenceFocusClearTimer = window.setTimeout(() => {
+        if (requestId === state.speechRequestId) {
+          clearSentenceFocus(false);
+        }
+      }, 1000);
+    });
+
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+  }
+
+  function isSameSentenceRange(leftRange, rightRange) {
+    if (!leftRange || !rightRange) {
+      return false;
+    }
+
+    return leftRange.startContainer === rightRange.startContainer
+      && leftRange.startOffset === rightRange.startOffset
+      && leftRange.endContainer === rightRange.endContainer
+      && leftRange.endOffset === rightRange.endOffset;
   }
 
   function pickVoice() {
@@ -804,11 +914,9 @@
     }
 
     clearSentenceFocus(true);
-    ensureHyphenopolyBridge();
     state.performingSyllableMutation = true;
     transformNodeTree(document.body);
     state.performingSyllableMutation = false;
-    scheduleHyphenopolyRefresh();
 
     state.syllableObserver = new MutationObserver((mutations) => {
       if (state.performingSyllableMutation) {
@@ -816,12 +924,11 @@
       }
 
       state.performingSyllableMutation = true;
-      let createdWrapper = false;
 
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.TEXT_NODE) {
-            createdWrapper = replaceTextNodeWithSyllables(node) || createdWrapper;
+            replaceTextNodeWithSyllables(node);
             return;
           }
 
@@ -830,16 +937,13 @@
             if (element.matches(".dr-syllable-node") || element.closest("#" + UI_ROOT_ID)) {
               return;
             }
-            createdWrapper = transformNodeTree(element) || createdWrapper;
+            transformNodeTree(element);
           }
         });
       });
 
       state.performingSyllableMutation = false;
 
-      if (createdWrapper) {
-        scheduleHyphenopolyRefresh();
-      }
     });
 
     state.syllableObserver.observe(document.body, {
@@ -852,11 +956,6 @@
     if (state.syllableObserver) {
       state.syllableObserver.disconnect();
       state.syllableObserver = null;
-    }
-
-    if (state.hyphenopolyRefreshFrame) {
-      window.cancelAnimationFrame(state.hyphenopolyRefreshFrame);
-      state.hyphenopolyRefreshFrame = 0;
     }
 
     for (let i = state.syllableReplacements.length - 1; i >= 0; i -= 1) {
@@ -906,7 +1005,7 @@
 
     const wrapper = document.createElement("span");
     wrapper.className = "dr-syllable-node";
-    wrapper.textContent = sourceText;
+    wrapper.textContent = hyphenateTextForSyllables(sourceText);
 
     node.parentNode.replaceChild(wrapper, node);
     state.syllableReplacements.push({
@@ -943,47 +1042,60 @@
     return Boolean(element && element.closest(SKIP_SELECTOR));
   }
 
-  function ensureHyphenopolyBridge() {
-    if (state.hyphenopolyBridgePromise) {
-      return state.hyphenopolyBridgePromise;
+  function hyphenateTextForSyllables(sourceText) {
+    const hyphenator = getSyllableHyphenator();
+    if (!hyphenator) {
+      return sourceText;
     }
 
-    state.hyphenopolyBridgePromise = new Promise((resolve, reject) => {
-      const existing = document.getElementById(HYPHENOPOLY_BRIDGE_ID);
-      if (existing) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = HYPHENOPOLY_BRIDGE_ID;
-      script.src = chrome.runtime.getURL("hyphenopoly-bridge.js");
-      script.async = false;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Hyphenopoly bridge."));
-
-      (document.head || document.documentElement).appendChild(script);
-    });
-
-    return state.hyphenopolyBridgePromise;
+    try {
+      return hyphenator(sourceText);
+    } catch (error) {
+      return sourceText;
+    }
   }
 
-  function scheduleHyphenopolyRefresh() {
-    if (!state.settings.syllableShower) {
-      return;
+  function getSyllableHyphenator() {
+    if (state.syllableHyphenator) {
+      return state.syllableHyphenator;
     }
 
-    if (state.hyphenopolyRefreshFrame) {
-      return;
+    if (typeof globalThis.createHyphenator !== "function" || !globalThis.hyphenPatternsEnUs) {
+      return null;
     }
 
-    state.hyphenopolyRefreshFrame = window.requestAnimationFrame(() => {
-      state.hyphenopolyRefreshFrame = 0;
-      ensureHyphenopolyBridge()
-        .then(() => {
-          window.dispatchEvent(new CustomEvent(HYPHENOPOLY_REFRESH_EVENT));
-        })
-        .catch(() => {});
+    state.syllableHyphenator = globalThis.createHyphenator(globalThis.hyphenPatternsEnUs, {
+      async: false,
+      html: false,
+      hyphenChar: SYLLABLE_SEPARATOR,
+      minWordLength: 4
+    });
+
+    return state.syllableHyphenator;
+  }
+
+  function waitForDocumentRoots() {
+    if (document.documentElement && document.body) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      const finish = () => {
+        if (document.documentElement && document.body) {
+          document.removeEventListener("DOMContentLoaded", finish);
+          observer.disconnect();
+          resolve();
+        }
+      };
+
+      const observer = new MutationObserver(finish);
+      observer.observe(document, {
+        childList: true,
+        subtree: true
+      });
+
+      document.addEventListener("DOMContentLoaded", finish, { once: true });
+      finish();
     });
   }
 
