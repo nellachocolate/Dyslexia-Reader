@@ -10,13 +10,6 @@
 - Text size slider: scale page text from `80%` to `200%`.
 - AI rewrite: select text, click `Simplify with AI`, and get a simpler rewrite in an on-page panel.
 
-## Load the extension
-
-1. Open `chrome://extensions` in Chrome or `edge://extensions` in Edge.
-2. Turn on `Developer mode`.
-3. Choose `Load unpacked`.
-4. Select this folder: `C:\Users\Allen\Documents\Playground`
-
 ## Configure
 
 1. Open the extension popup.
