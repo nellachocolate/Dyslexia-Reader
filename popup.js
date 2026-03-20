@@ -4,15 +4,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pageEnabledInput = document.getElementById("pageEnabled");
   const textScaleInput = document.getElementById("textScale");
   const textScaleValue = document.getElementById("textScaleValue");
+  const lineSpacingInput = document.getElementById("lineSpacing");
+  const lineSpacingValue = document.getElementById("lineSpacingValue");
+  const wordSpacingInput = document.getElementById("wordSpacing");
+  const wordSpacingValue = document.getElementById("wordSpacingValue");
   const toggleIds = [
     "hoverDictionary",
     "sentenceHighlighting",
+    "sentenceTextToSpeech",
     "syllableShower",
     "aiRewrite"
   ];
 
   const activeTabId = await getActiveTabId();
-  const settings = await shared.getStoredSettings();
+  let settings = await shared.getStoredSettings();
   let currentPageState = activeTabId ? await getPageState(activeTabId) : null;
 
   pageEnabledInput.checked = Boolean(currentPageState && currentPageState.pageEnabled);
@@ -43,15 +48,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   textScaleInput.addEventListener("input", async () => {
     const textScale = Number(textScaleInput.value);
     textScaleValue.textContent = textScale + "%";
-    await shared.saveSettings({ textScale });
+    settings = await shared.saveSettings({ textScale });
+    renderStatus(settings, currentPageState);
+  });
+
+  lineSpacingInput.value = String(settings.lineSpacing);
+  lineSpacingValue.textContent = settings.lineSpacing + "%";
+  lineSpacingInput.addEventListener("input", async () => {
+    const lineSpacing = Number(lineSpacingInput.value);
+    lineSpacingValue.textContent = lineSpacing + "%";
+    settings = await shared.saveSettings({ lineSpacing });
+    renderStatus(settings, currentPageState);
+  });
+
+  wordSpacingInput.value = String(settings.wordSpacing);
+  wordSpacingValue.textContent = settings.wordSpacing + "%";
+  wordSpacingInput.addEventListener("input", async () => {
+    const wordSpacing = Number(wordSpacingInput.value);
+    wordSpacingValue.textContent = wordSpacing + "%";
+    settings = await shared.saveSettings({ wordSpacing });
+    renderStatus(settings, currentPageState);
   });
 
   toggleIds.forEach((id) => {
     const input = document.getElementById(id);
     input.checked = Boolean(settings[id]);
     input.addEventListener("change", async () => {
-      const updated = await shared.saveSettings({ [id]: input.checked });
-      renderStatus(updated, currentPageState);
+      settings = await shared.saveSettings({ [id]: input.checked });
+      renderStatus(settings, currentPageState);
     });
   });
 

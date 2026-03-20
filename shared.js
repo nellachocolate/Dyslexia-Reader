@@ -4,9 +4,12 @@
   const DEFAULT_SETTINGS = Object.freeze({
     hoverDictionary: true,
     sentenceHighlighting: true,
+    sentenceTextToSpeech: true,
     syllableShower: false,
     aiRewrite: true,
     textScale: 100,
+    lineSpacing: 100,
+    wordSpacing: 100,
     ttsRate: 1,
     voiceName: "",
     aiModel: "gpt-5-mini",
@@ -22,9 +25,12 @@
 
     next.hoverDictionary = Boolean(next.hoverDictionary);
     next.sentenceHighlighting = Boolean(next.sentenceHighlighting);
+    next.sentenceTextToSpeech = Boolean(next.sentenceTextToSpeech);
     next.syllableShower = Boolean(next.syllableShower);
     next.aiRewrite = Boolean(next.aiRewrite);
     next.textScale = Math.round(clamp(Number(next.textScale) || DEFAULT_SETTINGS.textScale, 80, 200));
+    next.lineSpacing = Math.round(clamp(Number(next.lineSpacing) || DEFAULT_SETTINGS.lineSpacing, 100, 200));
+    next.wordSpacing = Math.round(clamp(Number(next.wordSpacing) || DEFAULT_SETTINGS.wordSpacing, 100, 200));
     next.ttsRate = clamp(Number(next.ttsRate) || DEFAULT_SETTINGS.ttsRate, 0.7, 1.4);
     next.voiceName = typeof next.voiceName === "string" ? next.voiceName : "";
     next.aiModel = typeof next.aiModel === "string" && next.aiModel.trim()

@@ -1,0 +1,297 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2306 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 54 728 Tm
+(Dyslexia Reader Privacy Policy:root { color-scheme: light; --bg: #f7f4ed; --panel:) Tj
+T*
+(#fffdf8; --text: #1f2933; --muted: #52606d; --accent: #0f766e; --border: rgba\(82, 96,) Tj
+T*
+(109, 0.18\); } * { box-sizing: border-box; } body { margin: 0; font-family: Georgia,) Tj
+T*
+("Times New Roman", serif; line-height: 1.65; color: var\(--text\); background:) Tj
+T*
+(radial-gradient\(circle at top right, rgba\(15, 118, 110, 0.08\), transparent 28%\),) Tj
+T*
+(linear-gradient\(180deg, #f8f5ee 0%, var\(--bg\) 100%\); } main { max-width: 820px; margin:) Tj
+T*
+(0 auto; padding: 48px 20px 72px; } article { background: var\(--panel\); border: 1px solid) Tj
+T*
+(var\(--border\); border-radius: 18px; padding: 32px 28px; box-shadow: 0 18px 40px rgba\(31,) Tj
+T*
+(41, 51, 0.08\); } h1, h2 { line-height: 1.2; } h1 { margin-top: 0; font-size: 2.2rem; }) Tj
+T*
+(h2 { margin-top: 2rem; font-size: 1.2rem; } p, li { font-size: 1rem; } .eyebrow {) Tj
+T*
+(margin: 0 0 8px; color: var\(--accent\); font-size: 0.78rem; font-weight: 700;) Tj
+T*
+(letter-spacing: 0.12em; text-transform: uppercase; } .muted { color: var\(--muted\); } a {) Tj
+T*
+(color: var\(--accent\); }) Tj
+T*
+T*
+(Dyslexia Reader) Tj
+T*
+T*
+(PRIVACY POLICY) Tj
+T*
+T*
+(Last updated: March 20, 2026) Tj
+T*
+T*
+(Dyslexia Reader is a browser extension for Chrome and Edge that provides accessibility) Tj
+T*
+(reading tools on webpages. This policy explains what information the extension) Tj
+T*
+(processes, how it is used, and when it is shared.) Tj
+T*
+T*
+(WHAT THE EXTENSION DOES) Tj
+T*
+T*
+(Dyslexia Reader helps users read webpage text more easily through features such as hover) Tj
+T*
+(dictionary, sentence highlighting with optional text-to-speech, syllable display, text) Tj
+T*
+(resizing, line and word spacing controls, and AI rewrite of user-selected text.) Tj
+T*
+T*
+(INFORMATION PROCESSED LOCALLY IN YOUR BROWSER) Tj
+T*
+T*
+(When you turn the extension on for a page, Dyslexia Reader may read and modify visible) Tj
+T*
+(webpage text locally in your browser in order to:) Tj
+T*
+T*
+(- highlight a sentence you select,) Tj
+T*
+T*
+(- read the sentence aloud using the browser's text-to-speech features when that option) Tj
+T*
+(  is enabled,) Tj
+T*
+T*
+(- show syllable breaks,) Tj
+T*
+T*
+(- change text size, and) Tj
+T*
+ET
+endstream
+endobj
+3 0 obj
+<< /Length 1832 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 54 728 Tm
+(- adjust line spacing and word spacing, and) Tj
+T*
+T*
+(- display interface elements such as tooltips and overlays.) Tj
+T*
+T*
+(This local page processing is used only to provide the extension's reading-support) Tj
+T*
+(features.) Tj
+T*
+T*
+(INFORMATION STORED ON YOUR DEVICE) Tj
+T*
+T*
+(Dyslexia Reader stores your settings locally using your browser's extension storage.) Tj
+T*
+(These settings can include:) Tj
+T*
+T*
+(- feature toggles,) Tj
+T*
+T*
+(- text size preferences,) Tj
+T*
+T*
+(- line spacing and word spacing preferences,) Tj
+T*
+T*
+(- text-to-speech settings,) Tj
+T*
+T*
+(- preferred AI model, and) Tj
+T*
+T*
+(- your OpenAI API key, if you choose to enter one.) Tj
+T*
+T*
+(This information is stored locally in your browser and is not sent to the developer.) Tj
+T*
+T*
+(INFORMATION SENT TO THIRD-PARTY SERVICES) Tj
+T*
+T*
+(Dyslexia Reader does not operate its own backend server. When needed for a) Tj
+T*
+(user-requested feature, the extension sends limited data directly from your browser to) Tj
+T*
+(the following third-party services:) Tj
+T*
+T*
+(- Free Dictionary API \(`dictionaryapi.dev`\):when hover dictionary is enabled and you) Tj
+T*
+(  hover over a word, the extension may send that word to retrieve a definition.) Tj
+T*
+T*
+(- OpenAI \(`api.openai.com`\):when you explicitly use the AI rewrite feature, the) Tj
+T*
+(  extension sends only the text you selected, along with your chosen model setting and) Tj
+T*
+(  your API key, to OpenAI so the text can be rewritten in simpler language.) Tj
+T*
+T*
+(HOW INFORMATION IS USED) Tj
+T*
+T*
+(The extension uses processed information only to provide the reading-support features) Tj
+T*
+(requested by the user. The extension is not designed to sell personal data, build) Tj
+T*
+(advertising profiles, or track browsing for marketing purposes.) Tj
+ET
+endstream
+endobj
+4 0 obj
+<< /Length 1804 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 54 728 Tm
+T*
+(HOW INFORMATION IS SHARED) Tj
+T*
+T*
+(Information is shared only when necessary to provide a feature you use:) Tj
+T*
+T*
+(- a hovered word may be sent to the dictionary service for a definition, and) Tj
+T*
+T*
+(- selected text may be sent to OpenAI for AI rewrite when you request that feature.) Tj
+T*
+T*
+(Other than those direct feature-related requests, Dyslexia Reader does not sell or share) Tj
+T*
+(your data with advertisers, data brokers, or analytics providers.) Tj
+T*
+T*
+(DATA RETENTION) Tj
+T*
+T*
+(The extension stores settings locally until you change them, clear browser extension) Tj
+T*
+(storage, or uninstall the extension. Data sent to third-party services is subject to) Tj
+T*
+(those services' own privacy practices and retention policies.) Tj
+T*
+T*
+(SECURITY) Tj
+T*
+T*
+(Dyslexia Reader uses HTTPS requests for external API calls. You should keep your OpenAI) Tj
+T*
+(API key private and only enter it into copies of the extension you trust.) Tj
+T*
+T*
+(YOUR CHOICES) Tj
+T*
+T*
+(- You can leave the extension turned off on any page.) Tj
+T*
+T*
+(- You can avoid using AI rewrite if you do not want selected text sent to OpenAI.) Tj
+T*
+T*
+(- You can remove your OpenAI API key from the extension settings at any time.) Tj
+T*
+T*
+(- You can uninstall the extension to remove its local storage from your browser.) Tj
+T*
+T*
+(CHILDREN) Tj
+T*
+T*
+(Dyslexia Reader is not directed to children under 13, and the developer does not) Tj
+T*
+(knowingly collect personal information from children through the extension.) Tj
+T*
+T*
+(CHANGES TO THIS POLICY) Tj
+T*
+T*
+(This privacy policy may be updated from time to time. If material changes are made, the) Tj
+T*
+(revised version will be posted at the same policy URL with an updated effective date.) Tj
+T*
+T*
+(CONTACT) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Length 83 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+1 0 0 1 54 728 Tm
+T*
+(Contact: allenhethis@outlook.com) Tj
+T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+7 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+endobj
+8 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+9 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
+endobj
+10 0 obj
+<< /Type /Pages /Kids [ 6 0 R 7 0 R 8 0 R 9 0 R ] /Count 4 >>
+endobj
+11 0 obj
+<< /Type /Catalog /Pages 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000002443 00000 n 
+0000004327 00000 n 
+0000006183 00000 n 
+0000006316 00000 n 
+0000006443 00000 n 
+0000006570 00000 n 
+0000006697 00000 n 
+0000006824 00000 n 
+0000006902 00000 n 
+trailer
+<< /Size 12 /Root 11 0 R >>
+startxref
+6953
+%%EOF

@@ -63,8 +63,10 @@
     sentenceFocusFadeTimer: 0,
     speechRequestId: 0,
     syllableHyphenator: null,
-    textScaleObserver: null,
-    appliedTextScale: 100
+    readabilityObserver: null,
+    appliedTextScale: 100,
+    appliedLineSpacing: 100,
+    appliedWordSpacing: 100
   };
 
   let uiRoot;
@@ -151,12 +153,15 @@
       : Object.assign({}, state.settings, {
         hoverDictionary: false,
         sentenceHighlighting: false,
+        sentenceTextToSpeech: false,
         syllableShower: false,
         aiRewrite: false,
-        textScale: 100
+        textScale: 100,
+        lineSpacing: 100,
+        wordSpacing: 100
       });
 
-    applyTextScale(effectiveSettings.textScale);
+    applyReadabilitySettings(effectiveSettings);
 
     if (effectiveSettings.syllableShower) {
       enableSyllableMode();
@@ -353,7 +358,7 @@
   }
 
   function activateSentenceFocus(sentenceDetails) {
-    clearSentenceFocus(false);
+    clearSentenceFocus(true);
     state.currentSentence = sentenceDetails;
     focusLayerEl.classList.remove("dr-hidden");
     if (state.sentenceFocusFadeTimer) {
@@ -364,7 +369,9 @@
       focusLayerEl.classList.add("dr-visible");
     });
     updateFocusOverlay();
-    speakSentence(sentenceDetails.text);
+    if (state.settings.sentenceTextToSpeech) {
+      speakSentence(sentenceDetails.text);
+    }
   }
 
   function clearSentenceFocus(cancelSpeech) {
@@ -1099,44 +1106,47 @@
     });
   }
 
-  function applyTextScale(scalePercent) {
-    ensureTextScaleObserver();
-    scaleExistingPageElements(scalePercent);
-    state.appliedTextScale = scalePercent;
+  function applyReadabilitySettings(readabilitySettings) {
+    ensureReadabilityObserver();
+    applyReadabilityToTree(document.body, readabilitySettings);
+    state.appliedTextScale = readabilitySettings.textScale;
+    state.appliedLineSpacing = readabilitySettings.lineSpacing;
+    state.appliedWordSpacing = readabilitySettings.wordSpacing;
   }
 
-  function ensureTextScaleObserver() {
-    if (state.textScaleObserver || !document.body) {
+  function ensureReadabilityObserver() {
+    if (state.readabilityObserver || !document.body) {
       return;
     }
 
-    state.textScaleObserver = new MutationObserver((mutations) => {
-      if (state.appliedTextScale === 100) {
+    state.readabilityObserver = new MutationObserver((mutations) => {
+      if (state.appliedTextScale === 100 && state.appliedLineSpacing === 100 && state.appliedWordSpacing === 100) {
         return;
       }
 
+      const readabilitySettings = getAppliedReadabilitySettings();
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          scaleNodeTree(node, state.appliedTextScale);
+          applyReadabilityToTree(node, readabilitySettings);
         });
       });
     });
 
-    state.textScaleObserver.observe(document.body, {
+    state.readabilityObserver.observe(document.body, {
       childList: true,
       subtree: true
     });
   }
 
-  function scaleExistingPageElements(scalePercent) {
-    if (!document.body) {
-      return;
-    }
-
-    scaleNodeTree(document.body, scalePercent);
+  function getAppliedReadabilitySettings() {
+    return {
+      textScale: state.appliedTextScale,
+      lineSpacing: state.appliedLineSpacing,
+      wordSpacing: state.appliedWordSpacing
+    };
   }
 
-  function scaleNodeTree(rootNode, scalePercent) {
+  function applyReadabilityToTree(rootNode, readabilitySettings) {
     if (!(rootNode instanceof Element)) {
       return;
     }
@@ -1161,13 +1171,19 @@
     }
 
     elements.forEach((element) => {
-      applyTextScaleToElement(element, scalePercent);
+      applyReadabilityToElement(element, readabilitySettings);
     });
+  }
+
+  function applyReadabilityToElement(element, readabilitySettings) {
+    applyTextScaleToElement(element, readabilitySettings.textScale);
+    applyLineSpacingToElement(element, readabilitySettings.lineSpacing);
+    applyWordSpacingToElement(element, readabilitySettings.wordSpacing);
   }
 
   function applyTextScaleToElement(element, scalePercent) {
     if (scalePercent === 100) {
-      restoreScaledElement(element);
+      restoreManagedStyle(element, "FontSize");
       return;
     }
 
@@ -1202,32 +1218,150 @@
       return null;
     }
 
-    element.dataset.drFontManaged = "true";
-    element.dataset.drOriginalFontSize = baseline.toFixed(4);
-    element.dataset.drOriginalInlineFontSize = element.style.getPropertyValue("font-size");
-    element.dataset.drOriginalInlinePriority = element.style.getPropertyPriority("font-size");
+    rememberManagedStyle(element, "FontSize", baseline, "font-size");
 
     return baseline;
   }
 
-  function restoreScaledElement(element) {
-    if (element.dataset.drFontManaged !== "true") {
+  function applyLineSpacingToElement(element, spacingPercent) {
+    if (spacingPercent === 100) {
+      restoreManagedStyle(element, "LineHeight");
       return;
     }
 
-    const originalFontSize = element.dataset.drOriginalInlineFontSize || "";
-    const originalPriority = element.dataset.drOriginalInlinePriority || "";
+    const baseline = getElementBaselineLineHeight(element);
 
-    if (originalFontSize) {
-      element.style.setProperty("font-size", originalFontSize, originalPriority);
-    } else {
-      element.style.removeProperty("font-size");
+    if (!baseline) {
+      return;
     }
 
-    delete element.dataset.drFontManaged;
-    delete element.dataset.drOriginalFontSize;
-    delete element.dataset.drOriginalInlineFontSize;
-    delete element.dataset.drOriginalInlinePriority;
+    element.style.setProperty("line-height", (baseline * spacingPercent / 100).toFixed(2) + "px", "important");
+  }
+
+  function getElementBaselineLineHeight(element) {
+    const stored = Number(element.dataset.drOriginalLineHeight || "");
+
+    if (stored > 0) {
+      return stored;
+    }
+
+    const computedStyles = window.getComputedStyle(element);
+    let computedLineHeight = Number.parseFloat(computedStyles.lineHeight);
+
+    if (!Number.isFinite(computedLineHeight) || computedLineHeight <= 0) {
+      const fontSize = Number.parseFloat(computedStyles.fontSize);
+      if (!Number.isFinite(fontSize) || fontSize <= 0) {
+        return null;
+      }
+      computedLineHeight = fontSize * 1.4;
+    }
+
+    const scaleFactor = state.appliedLineSpacing / 100;
+    const baseline = state.appliedLineSpacing === 100
+      ? computedLineHeight
+      : computedLineHeight / scaleFactor;
+
+    if (!Number.isFinite(baseline) || baseline <= 0) {
+      return null;
+    }
+
+    rememberManagedStyle(element, "LineHeight", baseline, "line-height");
+    return baseline;
+  }
+
+  function applyWordSpacingToElement(element, spacingPercent) {
+    if (spacingPercent === 100) {
+      restoreManagedStyle(element, "WordSpacing");
+      return;
+    }
+
+    const baseline = getElementBaselineWordSpacing(element);
+    const fontSize = getElementBaselineFontSize(element);
+
+    if (baseline === null || !fontSize) {
+      return;
+    }
+
+    const extraSpacing = fontSize * ((spacingPercent - 100) / 100) * 0.12;
+    element.style.setProperty("word-spacing", (baseline + extraSpacing).toFixed(2) + "px", "important");
+  }
+
+  function getElementBaselineWordSpacing(element) {
+    const stored = element.dataset.drOriginalWordSpacing;
+
+    if (stored !== undefined) {
+      return Number(stored);
+    }
+
+    const computedWordSpacing = Number.parseFloat(window.getComputedStyle(element).wordSpacing);
+    const appliedSpacing = state.appliedWordSpacing === 100
+      ? 0
+      : getWordSpacingOffsetPx(element, state.appliedWordSpacing);
+    const baseline = Number.isFinite(computedWordSpacing)
+      ? computedWordSpacing - appliedSpacing
+      : 0;
+
+    rememberManagedStyle(element, "WordSpacing", baseline, "word-spacing");
+    return baseline;
+  }
+
+  function getWordSpacingOffsetPx(element, spacingPercent) {
+    if (spacingPercent === 100) {
+      return 0;
+    }
+
+    const fontSize = getElementBaselineFontSize(element);
+    return fontSize ? fontSize * ((spacingPercent - 100) / 100) * 0.12 : 0;
+  }
+
+  function rememberManagedStyle(element, keySuffix, baseline, propertyName) {
+    const baselineKey = "drOriginal" + keySuffix;
+
+    if (element.dataset[baselineKey] !== undefined) {
+      return;
+    }
+
+    element.dataset["dr" + keySuffix + "Managed"] = "true";
+    element.dataset[baselineKey] = baseline.toFixed(4);
+    element.dataset["drOriginalInline" + keySuffix] = element.style.getPropertyValue(propertyName);
+    element.dataset["drOriginalInline" + keySuffix + "Priority"] = element.style.getPropertyPriority(propertyName);
+  }
+
+  function restoreManagedStyle(element, keySuffix) {
+    if (element.dataset["dr" + keySuffix + "Managed"] !== "true") {
+      return;
+    }
+
+    const propertyName = stylePropertyNameForKeySuffix(keySuffix);
+    const originalValue = element.dataset["drOriginalInline" + keySuffix] || "";
+    const originalPriority = element.dataset["drOriginalInline" + keySuffix + "Priority"] || "";
+
+    if (originalValue) {
+      element.style.setProperty(propertyName, originalValue, originalPriority);
+    } else {
+      element.style.removeProperty(propertyName);
+    }
+
+    delete element.dataset["dr" + keySuffix + "Managed"];
+    delete element.dataset["drOriginal" + keySuffix];
+    delete element.dataset["drOriginalInline" + keySuffix];
+    delete element.dataset["drOriginalInline" + keySuffix + "Priority"];
+  }
+
+  function stylePropertyNameForKeySuffix(keySuffix) {
+    if (keySuffix === "FontSize") {
+      return "font-size";
+    }
+
+    if (keySuffix === "LineHeight") {
+      return "line-height";
+    }
+
+    if (keySuffix === "WordSpacing") {
+      return "word-spacing";
+    }
+
+    return "";
   }
 
   function shouldSkipScaledElement(element) {

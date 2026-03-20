@@ -81,6 +81,25 @@ body {
   text-align: right;
 }
 
+.slider-stack {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.slider-row {
+  display: block;
+}
+
+.slider-row strong {
+  display: block;
+  font-size: 12px;
+}
+
+.slider-row .slider-control {
+  margin-top: 8px;
+}
+
 .toggle-list {
   display: grid;
   gap: 10px;

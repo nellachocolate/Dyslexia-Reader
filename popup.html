@@ -35,6 +35,29 @@
         </label>
       </section>
 
+      <section class="slider-card">
+        <div class="slider-copy">
+          <strong>Spacing</strong>
+          <small>Adjust line and word spacing for easier reading.</small>
+        </div>
+        <div class="slider-stack">
+          <label class="slider-row" for="lineSpacing">
+            <strong>Line spacing</strong>
+            <div class="slider-control">
+              <input id="lineSpacing" type="range" min="100" max="200" step="10">
+              <span id="lineSpacingValue">100%</span>
+            </div>
+          </label>
+          <label class="slider-row" for="wordSpacing">
+            <strong>Word spacing</strong>
+            <div class="slider-control">
+              <input id="wordSpacing" type="range" min="100" max="200" step="10">
+              <span id="wordSpacingValue">100%</span>
+            </div>
+          </label>
+        </div>
+      </section>
+
       <section class="toggle-list">
         <label class="toggle-row">
           <span>
@@ -47,9 +70,17 @@
         <label class="toggle-row">
           <span>
             <strong>Sentence highlighting</strong>
-            <small>Click a sentence to focus and read it aloud.</small>
+            <small>Click a sentence to focus it on the page.</small>
           </span>
           <input id="sentenceHighlighting" type="checkbox">
+        </label>
+
+        <label class="toggle-row">
+          <span>
+            <strong>Sentence text-to-speech</strong>
+            <small>Read the focused sentence aloud during sentence highlighting.</small>
+          </span>
+          <input id="sentenceTextToSpeech" type="checkbox">
         </label>
 
         <label class="toggle-row">
