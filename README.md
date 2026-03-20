@@ -4,7 +4,7 @@
 
 ## Features
 
-- Hover dictionary: hover a word to see a quick definition.
+- Hover dictionary: hover over a word to see a quick definition.
 - Sentence highlighting: click a sentence to dim the rest of the page, highlight the sentence, and read it aloud.
 - Show syllables: insert `·` separators using a bundled local English hyphenation source.
 - Text size slider: scale page text from `80%` to `200%`.
