@@ -45,10 +45,6 @@ Inference: Chrome Web Store categories can change over time, but `Productivity` 
 
 Used to save the user's extension settings locally, including reading tool preferences, text size, voice selection, and the user's OpenAI API key.
 
-`tabs`
-
-Used to identify and message the active tab so the user can turn the reading tools on or off for the current page.
-
 `<all_urls>`
 
 Used so the extension can read and modify page text on the current webpage when the user enables the reading tools for that page.

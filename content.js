@@ -417,8 +417,9 @@
 
     const rects = Array.from(state.currentSentence.range.getClientRects())
       .filter((rect) => rect.width > 1 && rect.height > 1);
+    const mergedRects = mergeFocusRects(rects);
 
-    if (!rects.length) {
+    if (!mergedRects.length) {
       focusLayerEl.classList.add("dr-hidden");
       return;
     }
@@ -426,7 +427,7 @@
     focusLayerEl.classList.remove("dr-hidden");
     focusBoxesEl.innerHTML = "";
 
-    rects.forEach((rect) => {
+    mergedRects.forEach((rect) => {
       const box = document.createElement("div");
       box.className = "dr-focus-box";
       box.style.left = Math.max(4, rect.left - 6) + "px";
@@ -435,6 +436,57 @@
       box.style.height = rect.height + 8 + "px";
       focusBoxesEl.appendChild(box);
     });
+  }
+
+  function mergeFocusRects(rects) {
+    if (!rects.length) {
+      return [];
+    }
+
+    const sortedRects = rects
+      .map((rect) => ({
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        centerY: rect.top + rect.height / 2
+      }))
+      .sort((leftRect, rightRect) => {
+        if (Math.abs(leftRect.top - rightRect.top) > 4) {
+          return leftRect.top - rightRect.top;
+        }
+
+        return leftRect.left - rightRect.left;
+      });
+
+    const merged = [];
+
+    sortedRects.forEach((rect) => {
+      const previous = merged[merged.length - 1];
+
+      if (previous && shouldMergeFocusRects(previous, rect)) {
+        previous.left = Math.min(previous.left, rect.left);
+        previous.top = Math.min(previous.top, rect.top);
+        previous.right = Math.max(previous.right, rect.right);
+        previous.bottom = Math.max(previous.bottom, rect.bottom);
+        previous.width = previous.right - previous.left;
+        previous.height = previous.bottom - previous.top;
+        previous.centerY = previous.top + previous.height / 2;
+        return;
+      }
+
+      merged.push(rect);
+    });
+
+    return merged;
+  }
+
+  function shouldMergeFocusRects(leftRect, rightRect) {
+    const sameLine = Math.abs(leftRect.centerY - rightRect.centerY) <= Math.max(8, Math.min(leftRect.height, rightRect.height) * 0.55);
+    const horizontalGap = rightRect.left - leftRect.right;
+    return sameLine && horizontalGap <= 24;
   }
 
   function renderTooltip(definition, x, y) {

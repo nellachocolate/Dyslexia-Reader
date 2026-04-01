@@ -27,7 +27,6 @@
 - Single purpose description:
   `This extension provides accessibility reading support on webpages by helping users focus, optionally hear, define, enlarge, space, and simplify page text.`
 - Permission justification for `storage`: saves extension settings locally.
-- Permission justification for `tabs`: identifies and updates the active tab for the per-page on/off toggle.
 - Permission justification for `<all_urls>`: reads and modifies page text only to provide the reading tools on webpages.
 - Permission justification for `https://api.dictionaryapi.dev/*`: looks up hovered-word definitions.
 - Permission justification for `https://api.openai.com/*`: sends user-selected text to OpenAI only when the user requests AI rewrite.

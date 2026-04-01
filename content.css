@@ -71,9 +71,9 @@
 .dr-focus-box {
   position: fixed;
   border-radius: 12px;
-  background: rgba(255, 248, 196, 0.52);
-  outline: 3px solid rgba(255, 196, 61, 0.7);
-  box-shadow: 0 10px 22px rgba(75, 62, 23, 0.12);
+  background: rgba(255, 248, 196, 0.34);
+  outline: 3px solid rgba(255, 196, 61, 0.55);
+  box-shadow: 0 8px 20px rgba(75, 62, 23, 0.1);
 }
 
 .dr-focus-caption {
