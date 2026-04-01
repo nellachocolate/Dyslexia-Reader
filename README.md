@@ -10,7 +10,7 @@
 - Sentence text-to-speech toggle: optionally read the focused sentence aloud during sentence highlighting.
 - Click again to stop: clicking the same sentence again cancels focus mode and speech.
 - Scroll-aware focus overlay: the sentence highlight stays aligned if the page moves while the sentence is active.
-- Show syllables: insert visible `·` separators using a bundled local English hyphenation source.
+- Show syllables: insert visible middle-dot separators using a bundled local English hyphenation source.
 - Text size slider: scale page text from `80%` to `200%`.
 - Line spacing slider: increase spacing between lines for easier reading.
 - Word spacing slider: increase spacing between words for easier reading.
